@@ -1,0 +1,989 @@
+openapi: 3.0.0
+info:
+  title: Quiz Application API
+  version: 1.0.0
+  description: API for managing quizzes, questions, options, users, and analytics
+    with role-based access control.
+servers:
+  - url: http://localhost:8080
+    description: Local development server (HTTP)
+security:
+  - bearerAuth: []
+tags:
+  - name: Authentication
+    description: Endpoints to register and authenticate users (issue JWTs)
+  - name: Quiz Management
+    description: Admin-only endpoints to create, update, and delete quizzes
+  - name: Question Management
+    description: Admin-only endpoints for quiz questions
+  - name: Option Management
+    description: Admin-only endpoints for question options
+  - name: Quiz Taking
+    description: Endpoints used by regular users to take quizzes
+  - name: User Management
+    description: Admin endpoints to manage user accounts and roles
+  - name: Analytics
+    description: Aggregated statistics and reporting endpoints
+paths:
+  /auth/register:
+    post:
+      security: []
+      summary: Register a new user
+      tags:
+      - Authentication
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterUser'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedUser'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Username already exists"
+  /auth/login:
+    post:
+      security: []
+      summary: Authenticate user and issue token
+      tags:
+      - Authentication
+      requestBody:
+        $ref: '#/components/requestBodies/LoginUser'
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthSuccess'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Invalid username or password"
+  /auth/register-admin:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Register a new admin user (Admin only)
+      tags:
+      - Authentication
+      requestBody:
+        $ref: '#/components/requestBodies/RegisterUser'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedUser'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Username already exists"
+        '403':
+          description: Access denied - Admin role required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Access denied"
+  /admin/quizzes:
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all quizzes with admin privileges
+      tags:
+      - Quiz Management
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizList'
+    post:
+      security:
+      - bearerAuth: []
+      summary: Create a new quiz with max_attempts
+      tags:
+      - Quiz Management
+      requestBody:
+        $ref: '#/components/requestBodies/CreateQuiz'
+      responses:
+        '201':
+          $ref: '#/components/responses/QuizDetail'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Invalid quiz payload"
+  /admin/quizzes/{quizId}:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get detailed quiz info
+      tags:
+      - Quiz Management
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizDetail'
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update quiz details and settings
+      tags:
+      - Quiz Management
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Quiz'
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizDetail'
+        '400':
+          description: Invalid input
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete quiz
+      tags:
+      - Quiz Management
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Quiz deleted
+  /admin/quizzes/{quizId}/questions:
+    get:
+      security:
+      - bearerAuth: []
+      summary: List questions for a quiz
+      tags:
+      - Question Management
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Question'
+    post:
+      security:
+      - bearerAuth: []
+      summary: Add a question to a quiz
+      tags:
+      - Question Management
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        $ref: '#/components/requestBodies/AddQuestion'
+      responses:
+        '201':
+          description: Question added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Question text is required"
+  /admin/questions/{questionId}:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get detailed question info
+      tags:
+      - Question Management
+      parameters:
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Question details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update question details
+      tags:
+      - Question Management
+      parameters:
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Question'
+      responses:
+        '200':
+          description: Question updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '400':
+          description: Invalid input
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete a question
+      tags:
+      - Question Management
+      parameters:
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: Question deleted
+  /admin/questions/{questionId}/options:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Add options to a question
+      tags:
+      - Option Management
+      parameters:
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Option'
+            example:
+              - question_id: 101
+                text: "final"
+                is_correct: true
+              - question_id: 101
+                text: "const"
+                is_correct: false
+      responses:
+        '201':
+          description: Options added
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Option'
+        '400':
+          description: Invalid input
+  /admin/options/{optionId}:
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update an option
+      tags:
+      - Option Management
+      parameters:
+      - name: optionId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Option'
+      responses:
+        '200':
+          description: Option updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Option'
+        '400':
+          description: Invalid input
+  /quizzes:
+    get:
+      summary: List all active quizzes available to users
+      tags:
+      - Quiz Taking
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizList'
+  /quizzes/{quizId}:
+    get:
+      summary: Get quiz details (excluding sensitive info)
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizDetail'
+  /quizzes/{quizId}/attempts:
+    get:
+      security:
+      - bearerAuth: []
+      summary: "Get current user\u2019s number of attempts on quiz"
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Number of attempts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attempts:
+                    type: integer
+                example:
+                  attempts: 1
+  /quizzes/{quizId}/start:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Start a quiz attempt if under max_attempts limit
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '201':
+          $ref: '#/components/responses/TakeStarted'
+        '403':
+          description: Max attempts exceeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Max attempts exceeded for this quiz"
+  /quizzes/{quizId}/submit:
+    post:
+      security:
+      - bearerAuth: []
+      summary: Submit answers for an attempt with attempt_number
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        $ref: '#/components/requestBodies/SubmitAnswers'
+      responses:
+        '200':
+          $ref: '#/components/responses/SubmitResult'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                example:
+                  message: "Answers malformed or missing take_id"
+  /users/{userId}/results:
+    get:
+      security:
+      - bearerAuth: []
+      summary: "View user\u2019s past quiz attempts and scores"
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResults'
+  /takes/{takeId}:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get detailed results of a particular attempt
+      tags:
+      - Quiz Taking
+      parameters:
+      - name: takeId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SubmitResult'
+  /admin/users:
+    get:
+      security:
+      - bearerAuth: []
+      summary: List all registered users
+      tags:
+      - User Management
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+  /admin/users/{userId}:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Get detailed user info
+      tags:
+      - User Management
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      security:
+      - bearerAuth: []
+      summary: Update user info or role
+      tags:
+      - User Management
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid input
+    delete:
+      security:
+      - bearerAuth: []
+      summary: Delete user account
+      tags:
+      - User Management
+      parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: User deleted
+  /admin/stats:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Aggregated quiz statistics and analytics
+      tags:
+      - Analytics
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizReport'
+  /admin/reports/quiz/{quizId}:
+    get:
+      security:
+      - bearerAuth: []
+      summary: Detailed report for specific quiz
+      tags:
+      - Analytics
+      parameters:
+      - name: quizId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/QuizReport'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        username:
+          type: string
+          example: johndoe
+        role:
+          type: string
+          example: user
+      required:
+        - id
+        - username
+        - role
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 10
+        title:
+          type: string
+          example: "Java Basics Quiz"
+        max_attempts:
+          type: integer
+          example: 3
+        created_by:
+          type: integer
+          example: 42
+      required:
+        - id
+        - title
+        - max_attempts
+        - created_by
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        quiz_id:
+          type: integer
+          example: 10
+        text:
+          type: string
+          example: "Which keyword declares a constant in Java?"
+        type:
+          type: string
+          example: "single-choice"
+      required:
+        - id
+        - quiz_id
+        - text
+        - type
+    Option:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1001
+        question_id:
+          type: integer
+          example: 101
+        text:
+          type: string
+          example: "final"
+        is_correct:
+          type: boolean
+          example: true
+      required:
+        - id
+        - question_id
+        - text
+        - is_correct
+    Take:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5001
+        user_id:
+          type: integer
+          example: 42
+        quiz_id:
+          type: integer
+          example: 10
+        attempt_number:
+          type: integer
+          example: 1
+        score:
+          type: number
+          format: float
+          example: 85.5
+      required:
+        - id
+        - user_id
+        - quiz_id
+        - attempt_number
+        - score
+    Response:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 9001
+        take_id:
+          type: integer
+          example: 5001
+        question_id:
+          type: integer
+          example: 101
+        option_id:
+          type: integer
+          example: 1001
+        text:
+          type: string
+          example: "final"
+      required:
+        - id
+        - take_id
+        - question_id
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  examples:
+    serverLocal:
+      summary: Local server examples
+      value:
+        - url: http://localhost:8080
+          description: Local development HTTP
+
+  requestBodies:
+    RegisterUser:
+      description: New user registration payload
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+              role:
+                type: string
+            required:
+              - username
+              - password
+          example:
+            username: janedoe
+            password: secretPassword123
+            role: user
+    LoginUser:
+      description: Login payload
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+            required:
+              - username
+              - password
+          example:
+            username: janedoe
+            password: secretPassword123
+    CreateQuiz:
+      description: Create a new quiz
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Quiz'
+          example:
+            title: "Spring Boot Intro"
+            max_attempts: 2
+            created_by: 42
+    AddQuestion:
+      description: Add question to quiz
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Question'
+          example:
+            quiz_id: 10
+            text: "What does IoC stand for?"
+            type: "single-choice"
+    SubmitAnswers:
+      description: Submit answers for a take
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              take_id:
+                type: integer
+              answers:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    question_id:
+                      type: integer
+                    option_id:
+                      type: integer
+            required:
+              - take_id
+              - answers
+          example:
+            take_id: 5001
+            answers:
+              - question_id: 101
+                option_id: 1001
+              - question_id: 102
+                option_id: 1005
+
+  responses:
+    CreatedUser:
+      description: User created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+          example:
+            id: 43
+            username: janedoe
+            role: user
+    AuthSuccess:
+      description: Authentication successful
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              access_token:
+                type: string
+              token_type:
+                type: string
+            required:
+              - access_token
+              - token_type
+          example:
+            access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+            token_type: Bearer
+    QuizList:
+      description: List of quizzes
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Quiz'
+          example:
+            - id: 10
+              title: "Java Basics Quiz"
+              max_attempts: 3
+              created_by: 42
+            - id: 11
+              title: "Spring Boot Intro"
+              max_attempts: 2
+              created_by: 42
+    QuizDetail:
+      description: Detailed quiz info
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quiz:
+                $ref: '#/components/schemas/Quiz'
+              questions:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Question'
+          example:
+            quiz:
+              id: 10
+              title: "Java Basics Quiz"
+              max_attempts: 3
+              created_by: 42
+            questions:
+              - id: 101
+                quiz_id: 10
+                text: "Which keyword declares a constant in Java?"
+                type: single-choice
+    TakeStarted:
+      description: Quiz attempt started
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Take'
+          example:
+            id: 5001
+            user_id: 42
+            quiz_id: 10
+            attempt_number: 1
+            score: 0.0
+    SubmitResult:
+      description: Submission result with score
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              take:
+                $ref: '#/components/schemas/Take'
+              responses:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Response'
+          example:
+            take:
+              id: 5001
+              user_id: 42
+              quiz_id: 10
+              attempt_number: 1
+              score: 85.5
+            responses:
+              - id: 9001
+                take_id: 5001
+                question_id: 101
+                option_id: 1001
+                text: "final"
+    UserResults:
+      description: User past attempts and scores
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Take'
+          example:
+            - id: 5001
+              user_id: 42
+              quiz_id: 10
+              attempt_number: 1
+              score: 85.5
+            - id: 5002
+              user_id: 42
+              quiz_id: 11
+              attempt_number: 1
+              score: 92.0
+    QuizReport:
+      description: Aggregated quiz report
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quiz_id:
+                type: integer
+              average_score:
+                type: number
+                format: float
+              attempts:
+                type: integer
+            required:
+              - quiz_id
+              - average_score
+              - attempts
+          example:
+            quiz_id: 10
+            average_score: 78.2
+            attempts: 124
+

@@ -1,0 +1,340 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-users-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_users
+              - column:
+                  name: username
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: create-quizzes-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: quizzes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_quizzes
+              - column:
+                  name: title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: max_attempts
+                  type: INTEGER
+                  defaultValue: 1
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_by
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValue: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: quizzes
+            baseColumnNames: created_by
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_quizzes_created_by
+
+  - changeSet:
+      id: create-questions-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: questions
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_questions
+              - column:
+                  name: quiz_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: questions
+            baseColumnNames: quiz_id
+            referencedTableName: quizzes
+            referencedColumnNames: id
+            constraintName: fk_questions_quiz_id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: create-options-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: options
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_options
+              - column:
+                  name: question_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_correct
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: options
+            baseColumnNames: question_id
+            referencedTableName: questions
+            referencedColumnNames: id
+            constraintName: fk_options_question_id
+            onDelete: CASCADE
+
+  - changeSet:
+      id: create-takes-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: takes
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_takes
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: quiz_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempt_number
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: score
+                  type: DECIMAL(5,2)
+              - column:
+                  name: started_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: completed_at
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: takes
+            baseColumnNames: user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_takes_user_id
+        - addForeignKeyConstraint:
+            baseTableName: takes
+            baseColumnNames: quiz_id
+            referencedTableName: quizzes
+            referencedColumnNames: id
+            constraintName: fk_takes_quiz_id
+
+  - changeSet:
+      id: create-responses-table
+      author: developer
+      changes:
+        - createTable:
+            tableName: responses
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_responses
+              - column:
+                  name: take_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: question_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: option_id
+                  type: BIGINT
+              - column:
+                  name: text
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: responses
+            baseColumnNames: take_id
+            referencedTableName: takes
+            referencedColumnNames: id
+            constraintName: fk_responses_take_id
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: responses
+            baseColumnNames: question_id
+            referencedTableName: questions
+            referencedColumnNames: id
+            constraintName: fk_responses_question_id
+        - addForeignKeyConstraint:
+            baseTableName: responses
+            baseColumnNames: option_id
+            referencedTableName: options
+            referencedColumnNames: id
+            constraintName: fk_responses_option_id
+
+  - changeSet:
+      id: add-indexes
+      author: developer
+      changes:
+        - createIndex:
+            indexName: idx_users_username
+            tableName: users
+            columns:
+              - column:
+                  name: username
+        - createIndex:
+            indexName: idx_quizzes_created_by
+            tableName: quizzes
+            columns:
+              - column:
+                  name: created_by
+        - createIndex:
+            indexName: idx_questions_quiz_id
+            tableName: questions
+            columns:
+              - column:
+                  name: quiz_id
+        - createIndex:
+            indexName: idx_options_question_id
+            tableName: options
+            columns:
+              - column:
+                  name: question_id
+        - createIndex:
+            indexName: idx_takes_user_quiz
+            tableName: takes
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: quiz_id
+        - createIndex:
+            indexName: idx_responses_take_id
+            tableName: responses
+            columns:
+              - column:
+                  name: take_id
+
+  - changeSet:
+      id: insert-admin-user
+      author: developer
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO users (username, password, role) 
+              VALUES ('admin', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfCSvnr6VK0VjXm', 'ADMIN')
+              ON CONFLICT (username) DO NOTHING;
+            comment: "Insert default admin user with password 'secret'"
+
+  - changeSet:
+      id: insert-additional-admin-users
+      author: developer
+      changes:
+        - sql:
+            sql: >
+              INSERT INTO users (username, password, role) 
+              VALUES 
+                ('superadmin', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfCSvnr6VK0VjXm', 'ADMIN'),
+                ('manager', '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewfCSvnr6VK0VjXm', 'ADMIN')
+              ON CONFLICT (username) DO NOTHING;
+            comment: "Insert additional admin users: superadmin and manager (password: 'secret')"

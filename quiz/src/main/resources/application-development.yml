@@ -1,0 +1,42 @@
+spring:
+  config:
+    activate:
+      on-profile: development
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/development
+    username: user
+    password: yesh@6289
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none # Use 'none' when using Liquibase to manage schema
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  security:
+    user:
+      name: dev
+      password: devpassword
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/changelog-master.yml
+    contexts: development
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+
+#springdoc:
+#  api-docs:
+#    path: /v3/api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#    url: /v3/api-docs
+
+logging:
+  level:
+    root: DEBUG
